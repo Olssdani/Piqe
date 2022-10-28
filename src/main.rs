@@ -1,68 +1,23 @@
+use gaussian_kernel::Gaussian;
 use image::io::Reader;
-use std::{
-    f32::consts::{E, PI},
-    fmt,
-    io::Cursor,
-    thread::panicking,
-};
+use mscn::MSCN;
+use std::f32::EPSILON;
+
+mod gaussian_kernel;
+mod mscn;
 
 fn mscn(i: f32, u: f32, sigma: f32) -> f32 {
     // MSCN(x) = (I(x) - u(x)) / (sigma(x) +  Epislon)
     //Epsilon is a small number to make sure we do not make division by 0
-    (i - u) / (sigma + 0.0039)
-}
-
-struct Gaussian {
-    kernel: Vec<Vec<f32>>,
-    size: i32,
-}
-
-impl Gaussian {
-    fn new(size: i32, sigma: f32) -> Gaussian {
-        let mut res = vec![vec![0.0; (size * 2 + 1) as usize]; (size * 2 + 1) as usize];
-        for y in -size..=size {
-            for x in -size..=size {
-                res[(y + size) as usize][(x + size) as usize] = (1.0 / (2.0 * PI * sigma.powi(2)))
-                    * E.powf(-((x.pow(2) + y.pow(2)) as f32 / (2.0 * sigma.powi(2))))
-            }
-        }
-
-        Gaussian { kernel: res, size }
-    }
-
-    fn value(&self, x: i32, y: i32) -> f32 {
-        if x.abs() > self.size || y.abs() > self.size {
-            panic!(
-                "Out of bound size is between -{} - {}! Your value is x: {} y: {}",
-                self.size, self.size, x, y
-            );
-        }
-
-        self.kernel[(y + self.size) as usize][(x + self.size) as usize]
-    }
-
-    fn size(&self) -> i32 {
-        self.size
-    }
-}
-
-impl fmt::Display for Gaussian {
-    // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for y in 0..(self.size * 2 + 1) {
-            for x in 0..(self.size * 2 + 1) {
-                write!(f, "{} ", self.kernel[y as usize][x as usize]).expect("wrong");
-            }
-            writeln!(f).expect("wrong");
-        }
-        Ok(())
-    }
+    (i - u) / (sigma + EPSILON)
 }
 
 fn main() {
     let size = 3;
     let kernel = Gaussian::new(size, 1.0);
+
     println!("{}", kernel);
+    kernel.print_normalized();
 
     // Read Image, What is the format? Intesity image == grey scale?
     let img = Reader::open("test.png")
@@ -73,6 +28,8 @@ fn main() {
 
     let width = img.width() as usize;
     let height = img.height() as usize;
+
+    let mscn = MSCN::new();
 
     let mut u = vec![vec![0.0; width]; height];
 
@@ -158,9 +115,9 @@ fn main() {
         }
     }
 
-    for y in 0..by {
+    /* for y in 0..by {
         for x in 0..bx {
             println!("{}", blocks[y][x]);
         }
-    }
+    }*/
 }
